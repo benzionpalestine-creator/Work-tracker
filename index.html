@@ -4,36 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Work Hours Tracker</title>
+
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "PASTE_HERE",
-      authDomain: "PASTE_HERE",
-      projectId: "PASTE_HERE",
-      storageBucket: "PASTE_HERE",
-      messagingSenderId: "PASTE_HERE",
-      appId: "PASTE_HERE"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    window.auth = auth;
-    window.db = db;
-    window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-    window.signInWithEmailAndPassword = signInWithEmailAndPassword;
-    window.signOut = signOut;
-    window.setDoc = setDoc;
-    window.doc = doc;
-    window.getDoc = getDoc;
-  </script>
 
   <!-- PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -41,162 +14,239 @@
 
 <body class="bg-gray-100 p-6">
 
-<!-- LOGIN -->
+<!-- LOGIN + SIGNUP -->
 <div id="loginScreen" class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow">
   <h1 class="text-2xl font-bold mb-4 text-center">Login</h1>
 
-  <input id="username" placeholder="Email" class="border p-2 rounded w-full mb-2">
+  <input id="username" placeholder="Username" class="border p-2 rounded w-full mb-2">
 
   <div class="relative mb-3">
     <input id="password" type="password" placeholder="Password" class="border p-2 rounded w-full pr-10">
     <button onclick="togglePassword('password')" class="absolute right-2 top-2">👁</button>
   </div>
 
-  <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded-xl w-full mb-4">Login</button>
+  <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded-xl w-full mb-4">
+    Login
+  </button>
 
   <hr class="my-4">
 
   <h2 class="text-lg font-semibold text-center mb-2">Create Account</h2>
 
-  <input id="newUsername" placeholder="Email" class="border p-2 rounded w-full mb-2">
+  <input id="newUsername" placeholder="New Username" class="border p-2 rounded w-full mb-2">
 
   <div class="relative mb-2">
-    <input id="newPassword" type="password" placeholder="Password" class="border p-2 rounded w-full pr-10">
+    <input id="newPassword" type="password" placeholder="New Password" class="border p-2 rounded w-full pr-10">
     <button onclick="togglePassword('newPassword')" class="absolute right-2 top-2">👁</button>
   </div>
 
-  <button onclick="signup()" class="bg-green-500 text-white px-4 py-2 rounded-xl w-full">Sign Up</button>
+  <button onclick="signup()" class="bg-green-500 text-white px-4 py-2 rounded-xl w-full">
+    Sign Up
+  </button>
 </div>
 
 <!-- APP -->
 <div id="app" class="hidden max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow">
 
-  <div class="flex justify-between mb-4">
-    <h1 class="text-2xl font-bold">Work Tracker</h1>
-    <button onclick="logout()" class="bg-gray-700 text-white px-3 py-1 rounded-xl">Logout</button>
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">Work Hours Tracker</h1>
+    <div>
+      <span id="welcomeUser" class="mr-4 text-gray-600"></span>
+      <button onclick="logout()" class="bg-gray-700 text-white px-3 py-1 rounded-xl">Logout</button>
+    </div>
   </div>
 
-  <button onclick="clockIn()" class="bg-green-500 text-white px-4 py-2 rounded-xl">Clock In</button>
-  <button onclick="clockOut()" class="bg-red-500 text-white px-4 py-2 rounded-xl ml-2">Clock Out</button>
+  <!-- CLOCK -->
+  <div class="mb-6">
+    <h2 class="text-lg font-semibold mb-2">Quick Clock</h2>
+    <button onclick="clockIn()" class="bg-green-500 text-white px-4 py-2 rounded-xl">Clock In</button>
+    <button onclick="clockOut()" class="bg-red-500 text-white px-4 py-2 rounded-xl ml-2">Clock Out</button>
+    <p id="status" class="mt-2 text-sm text-gray-600"></p>
+  </div>
 
-  <p id="status" class="mt-2"></p>
-
-  <div class="mt-4">
+  <!-- ENTRY -->
+  <div class="grid grid-cols-2 gap-4 mb-4">
     <input id="date" type="date" class="border p-2 rounded">
-    <input id="hours" type="number" placeholder="Hours" class="border p-2 rounded">
-    <button onclick="addEntry()" class="bg-blue-500 text-white px-3 py-2 rounded">Add</button>
+    <input id="hours" type="number" step="0.1" placeholder="Hours worked" class="border p-2 rounded">
   </div>
 
-  <button onclick="downloadPDF()" class="bg-purple-500 text-white px-4 py-2 rounded-xl mt-4">
-    Download PDF
+  <button onclick="addEntry()" class="bg-blue-500 text-white px-4 py-2 rounded-xl">
+    Add Entry
   </button>
 
-  <ul id="entries" class="mt-4"></ul>
-  <h2>Total: <span id="total">0</span></h2>
+  <!-- EXPORT -->
+  <div class="mt-6">
+    <button onclick="downloadPDF()" class="bg-purple-500 text-white px-4 py-2 rounded-xl">
+      Download PDF
+    </button>
+  </div>
+
+  <ul id="entries" class="mt-4 space-y-2"></ul>
+  <h2 class="mt-4 font-bold">Total: <span id="total">0</span></h2>
 
 </div>
 
 <script>
-let currentUser = null;
+let currentUser = localStorage.getItem("currentUser") || null;
 let data = [];
 let activeClock = null;
 
+// Toggle password
 function togglePassword(id) {
   const input = document.getElementById(id);
   input.type = input.type === "password" ? "text" : "password";
 }
 
-async function signup() {
-  const email = newUsername.value;
-  const password = newPassword.value;
+// Signup
+function signup() {
+  const username = newUsername.value.trim();
+  const password = newPassword.value.trim();
 
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("Account created!");
-  } catch (e) {
-    alert(e.message);
-  }
+  if (!username || !password) return alert("Fill all fields");
+
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+
+  if (users[username]) return alert("User exists");
+
+  users[username] = { password };
+  localStorage.setItem("users", JSON.stringify(users));
+
+  alert("Account created");
 }
 
-async function login() {
-  try {
-    const res = await signInWithEmailAndPassword(auth, username.value, password.value);
-    currentUser = res.user.uid;
-    startApp();
-  } catch {
-    alert("Login failed");
+// Login
+function login() {
+  let users = JSON.parse(localStorage.getItem("users")) || {};
+
+  if (!users[username.value] || users[username.value].password !== password.value) {
+    return alert("Invalid login");
   }
+
+  currentUser = username.value;
+  localStorage.setItem("currentUser", currentUser);
+  startApp();
 }
 
-async function logout() {
-  await signOut(auth);
+// Logout
+function logout() {
+  localStorage.removeItem("currentUser");
   location.reload();
 }
 
-async function saveData() {
-  await setDoc(doc(db, "users", currentUser), { data });
+// Load data
+function loadData() {
+  data = JSON.parse(localStorage.getItem("data_" + currentUser)) || [];
+  activeClock = JSON.parse(localStorage.getItem("clock_" + currentUser)) || null;
 }
 
-async function loadUserData() {
-  const snap = await getDoc(doc(db, "users", currentUser));
-  data = snap.exists() ? snap.data().data : [];
+// Save
+function saveData() {
+  localStorage.setItem("data_" + currentUser, JSON.stringify(data));
 }
 
+function saveClock() {
+  localStorage.setItem("clock_" + currentUser, JSON.stringify(activeClock));
+}
+
+// Start app
 function startApp() {
   loginScreen.style.display = "none";
   app.style.display = "block";
-  loadUserData().then(render);
+  welcomeUser.innerText = "Hello, " + currentUser;
+
+  loadData();
+  render();
+  updateStatus();
 }
 
+// Clock
 function clockIn() {
+  if (activeClock) return alert("Already clocked in");
   activeClock = { start: new Date().toISOString() };
+  saveClock();
   updateStatus();
 }
 
 function clockOut() {
-  if (!activeClock) return;
+  if (!activeClock) return alert("Not clocked in");
+
   const start = new Date(activeClock.start);
   const hours = (new Date() - start) / 3600000;
+
   data.push({ date: start.toISOString().split('T')[0], hours });
+
   activeClock = null;
+  saveClock();
   saveData();
   render();
+  updateStatus();
 }
 
 function updateStatus() {
-  status.innerText = activeClock ? "Clocked in" : "Not clocked in";
+  status.innerText = activeClock
+    ? "Clocked in since: " + new Date(activeClock.start).toLocaleTimeString()
+    : "Not clocked in";
 }
 
+// Add entry
 function addEntry() {
+  if (!date.value || !hours.value) return alert("Enter data");
+
   data.push({ date: date.value, hours: parseFloat(hours.value) });
   saveData();
   render();
 }
 
+// Delete
+function deleteEntry(i) {
+  data.splice(i, 1);
+  saveData();
+  render();
+}
+
+// Render
 function render() {
   entries.innerHTML = "";
   let total = 0;
 
-  data.forEach(e => {
+  data.forEach((e, i) => {
     total += e.hours;
-    entries.innerHTML += `<li>${e.date} - ${e.hours.toFixed(2)} hrs</li>`;
+
+    entries.innerHTML += `
+      <li class="flex justify-between bg-gray-50 p-2 rounded">
+        <span>${e.date} - ${e.hours.toFixed(2)} hrs</span>
+        <button onclick="deleteEntry(${i})" class="text-red-500">Delete</button>
+      </li>
+    `;
   });
 
-  document.getElementById("total").innerText = total.toFixed(2);
+  totalEl = document.getElementById("total");
+  totalEl.innerText = total.toFixed(2);
 }
 
+// PDF
 function downloadPDF() {
+  if (data.length === 0) return alert("No data");
+
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
   let y = 10;
+  let total = 0;
+
   data.forEach(e => {
     doc.text(`${e.date} - ${e.hours.toFixed(2)} hrs`, 10, y);
     y += 10;
+    total += e.hours;
   });
 
-  doc.save("report.pdf");
+  doc.text(`Total: ${total.toFixed(2)} hrs`, 10, y + 10);
+
+  doc.save(currentUser + "_report.pdf");
 }
+
+// Auto login
+if (currentUser) startApp();
 </script>
 
 </body>
