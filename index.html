@@ -1,0 +1,153 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Hours Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow">
+    <h1 class="text-2xl font-bold mb-4">Work Hours Tracker</h1><!-- Clock In/Out Section -->
+<div class="mb-6">
+  <h2 class="text-lg font-semibold mb-2">Quick Clock</h2>
+  <div class="flex gap-3">
+    <button onclick="clockIn()" class="bg-green-500 text-white px-4 py-2 rounded-xl">Clock In</button>
+    <button onclick="clockOut()" class="bg-red-500 text-white px-4 py-2 rounded-xl">Clock Out</button>
+  </div>
+  <p id="status" class="mt-2 text-sm text-gray-600"></p>
+</div>
+
+<!-- Manual Entry -->
+<div class="grid grid-cols-2 gap-4 mb-4">
+  <input id="date" type="date" class="border p-2 rounded">
+  <input id="hours" type="number" step="0.1" placeholder="Hours worked" class="border p-2 rounded">
+</div>
+
+<button onclick="addEntry()" class="bg-blue-500 text-white px-4 py-2 rounded-xl">Add Manual Entry</button>
+
+<!-- Export Section -->
+<div class="mt-6">
+  <h2 class="text-lg font-semibold mb-2">Export Data</h2>
+  <button onclick="downloadCSV()" class="bg-purple-500 text-white px-4 py-2 rounded-xl">Download Monthly Report (CSV)</button>
+</div>
+
+<h2 class="text-xl font-semibold mt-6">Entries</h2>
+<ul id="entries" class="mt-2 space-y-2"></ul>
+
+<h2 class="text-xl font-semibold mt-6">Total Hours: <span id="total">0</span></h2>
+
+  </div>  <script>
+    let data = JSON.parse(localStorage.getItem('workData')) || [];
+    let activeClock = JSON.parse(localStorage.getItem('activeClock')) || null;
+
+    function saveData() {
+      localStorage.setItem('workData', JSON.stringify(data));
+    }
+
+    function saveClock() {
+      localStorage.setItem('activeClock', JSON.stringify(activeClock));
+    }
+
+    function clockIn() {
+      if (activeClock) {
+        alert('Already clocked in');
+        return;
+      }
+      activeClock = { start: new Date().toISOString() };
+      saveClock();
+      updateStatus();
+    }
+
+    function clockOut() {
+      if (!activeClock) {
+        alert('You are not clocked in');
+        return;
+      }
+
+      const start = new Date(activeClock.start);
+      const end = new Date();
+      const diff = (end - start) / (1000 * 60 * 60);
+
+      const date = start.toISOString().split('T')[0];
+      data.push({ date, hours: diff });
+
+      activeClock = null;
+      saveClock();
+      saveData();
+      render();
+      updateStatus();
+    }
+
+    function updateStatus() {
+      const status = document.getElementById('status');
+      if (activeClock) {
+        status.innerText = 'Clocked in since: ' + new Date(activeClock.start).toLocaleTimeString();
+      } else {
+        status.innerText = 'Not clocked in';
+      }
+    }
+
+    function addEntry() {
+      const date = document.getElementById('date').value;
+      const hours = parseFloat(document.getElementById('hours').value);
+
+      if (!date || isNaN(hours)) return alert('Enter valid data');
+
+      data.push({ date, hours });
+      saveData();
+      render();
+    }
+
+    function deleteEntry(index) {
+      data.splice(index, 1);
+      saveData();
+      render();
+    }
+
+    function downloadCSV() {
+      if (data.length === 0) {
+        alert('No data to export');
+        return;
+      }
+
+      let csv = 'Date,Hours\n';
+      data.forEach(entry => {
+        csv += `${entry.date},${entry.hours.toFixed(2)}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'work_hours_report.csv';
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function render() {
+      const list = document.getElementById('entries');
+      list.innerHTML = '';
+
+      let total = 0;
+
+      data.forEach((entry, index) => {
+        total += entry.hours;
+
+        const li = document.createElement('li');
+        li.className = 'flex justify-between bg-gray-50 p-2 rounded';
+        li.innerHTML = `
+          <span>${entry.date} - ${entry.hours.toFixed(2)} hrs</span>
+          <button onclick="deleteEntry(${index})" class="text-red-500">Delete</button>
+        `;
+        list.appendChild(li);
+      });
+
+      document.getElementById('total').innerText = total.toFixed(2);
+    }
+
+    render();
+    updateStatus();
+  </script></body>
+</html>
