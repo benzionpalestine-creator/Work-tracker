@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Work Hours Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- PDF LIBRARY -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body class="bg-gray-100 p-6">
@@ -13,8 +16,12 @@
 <div id="loginScreen" class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow">
   <h1 class="text-2xl font-bold mb-4 text-center">Login</h1>
 
-  <input id="username" placeholder="Username" class="border p-2 rounded w-full mb-3">
-  <input id="password" type="password" placeholder="Password" class="border p-2 rounded w-full mb-3">
+  <input id="username" placeholder="Username" class="border p-2 rounded w-full mb-2">
+
+  <div class="relative mb-3">
+    <input id="password" type="password" placeholder="Password" class="border p-2 rounded w-full pr-10">
+    <button onclick="togglePassword('password')" class="absolute right-2 top-2 text-sm">👁</button>
+  </div>
 
   <button onclick="login()" class="bg-blue-500 text-white px-4 py-2 rounded-xl w-full mb-4">
     Login
@@ -25,7 +32,11 @@
   <h2 class="text-lg font-semibold mb-2 text-center">Create Account</h2>
 
   <input id="newUsername" placeholder="New Username" class="border p-2 rounded w-full mb-2">
-  <input id="newPassword" type="password" placeholder="New Password" class="border p-2 rounded w-full mb-2">
+
+  <div class="relative mb-2">
+    <input id="newPassword" type="password" placeholder="New Password" class="border p-2 rounded w-full pr-10">
+    <button onclick="togglePassword('newPassword')" class="absolute right-2 top-2 text-sm">👁</button>
+  </div>
 
   <button onclick="signup()" class="bg-green-500 text-white px-4 py-2 rounded-xl w-full">
     Sign Up
@@ -35,7 +46,6 @@
 <!-- APP -->
 <div id="app" class="hidden max-w-3xl mx-auto bg-white p-6 rounded-2xl shadow">
 
-  <!-- TOP BAR -->
   <div class="flex justify-between items-center mb-4">
     <h1 class="text-2xl font-bold">Work Hours Tracker</h1>
     <div>
@@ -54,7 +64,7 @@
     <p id="status" class="mt-2 text-sm text-gray-600"></p>
   </div>
 
-  <!-- MANUAL ENTRY -->
+  <!-- ENTRY -->
   <div class="grid grid-cols-2 gap-4 mb-4">
     <input id="date" type="date" class="border p-2 rounded">
     <input id="hours" type="number" step="0.1" placeholder="Hours worked" class="border p-2 rounded">
@@ -67,8 +77,8 @@
   <!-- EXPORT -->
   <div class="mt-6">
     <h2 class="text-lg font-semibold mb-2">Export Data</h2>
-    <button onclick="downloadCSV()" class="bg-purple-500 text-white px-4 py-2 rounded-xl">
-      Download Monthly Report (CSV)
+    <button onclick="downloadPDF()" class="bg-purple-500 text-white px-4 py-2 rounded-xl">
+      Download Monthly Report (PDF)
     </button>
   </div>
 
@@ -82,15 +92,23 @@
 </div>
 
 <script>
-  let currentUser = localStorage.getItem("currentUser");
+  let currentUser = localStorage.getItem("currentUser") || null;
   let data = [];
   let activeClock = null;
 
-  function loadUserData() {
-    if (!currentUser) return;
+  function togglePassword(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === "password" ? "text" : "password";
+  }
 
-    data = JSON.parse(localStorage.getItem(`workData_${currentUser}`)) || [];
-    activeClock = JSON.parse(localStorage.getItem(`activeClock_${currentUser}`)) || null;
+  function loadUserData() {
+    try {
+      data = JSON.parse(localStorage.getItem(`workData_${currentUser}`)) || [];
+      activeClock = JSON.parse(localStorage.getItem(`activeClock_${currentUser}`)) || null;
+    } catch {
+      data = [];
+      activeClock = null;
+    }
   }
 
   function saveData() {
@@ -105,22 +123,16 @@
     const username = document.getElementById('newUsername').value.trim();
     const password = document.getElementById('newPassword').value.trim();
 
-    if (!username || !password) {
-      alert("Enter username and password");
-      return;
-    }
+    if (!username || !password) return alert("Enter username and password");
 
     let users = JSON.parse(localStorage.getItem("users")) || {};
 
-    if (users[username]) {
-      alert("Username already exists");
-      return;
-    }
+    if (users[username]) return alert("Username exists");
 
     users[username] = { password };
     localStorage.setItem("users", JSON.stringify(users));
 
-    alert("Account created! You can now log in.");
+    alert("Account created!");
   }
 
   function login() {
@@ -130,13 +142,11 @@
     let users = JSON.parse(localStorage.getItem("users")) || {};
 
     if (!users[username] || users[username].password !== password) {
-      alert("Invalid username or password");
-      return;
+      return alert("Invalid login");
     }
 
     localStorage.setItem("currentUser", username);
     currentUser = username;
-
     startApp();
   }
 
@@ -146,10 +156,10 @@
   }
 
   function startApp() {
-    document.getElementById("loginScreen").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
 
-    document.getElementById("welcomeUser").innerText = `Hello, ${currentUser}`;
+    document.getElementById("welcomeUser").innerText = "Hello, " + currentUser;
 
     loadUserData();
     render();
@@ -157,7 +167,7 @@
   }
 
   function clockIn() {
-    if (activeClock) return alert('Already clocked in');
+    if (activeClock) return alert("Already clocked in");
 
     activeClock = { start: new Date().toISOString() };
     saveClock();
@@ -165,14 +175,13 @@
   }
 
   function clockOut() {
-    if (!activeClock) return alert('You are not clocked in');
+    if (!activeClock) return alert("Not clocked in");
 
     const start = new Date(activeClock.start);
     const end = new Date();
-    const diff = (end - start) / (1000 * 60 * 60);
+    const hours = (end - start) / 3600000;
 
-    const date = start.toISOString().split('T')[0];
-    data.push({ date, hours: diff });
+    data.push({ date: start.toISOString().split('T')[0], hours });
 
     activeClock = null;
     saveClock();
@@ -182,75 +191,74 @@
   }
 
   function updateStatus() {
-    const status = document.getElementById('status');
-    status.innerText = activeClock
-      ? 'Clocked in since: ' + new Date(activeClock.start).toLocaleTimeString()
-      : 'Not clocked in';
+    document.getElementById("status").innerText = activeClock
+      ? "Clocked in since: " + new Date(activeClock.start).toLocaleTimeString()
+      : "Not clocked in";
   }
 
   function addEntry() {
-    const date = document.getElementById('date').value;
-    const hours = parseFloat(document.getElementById('hours').value);
+    const date = document.getElementById("date").value;
+    const hours = parseFloat(document.getElementById("hours").value);
 
-    if (!date || isNaN(hours)) return alert('Enter valid data');
+    if (!date || isNaN(hours)) return alert("Invalid input");
 
     data.push({ date, hours });
     saveData();
     render();
   }
 
-  function deleteEntry(index) {
-    data.splice(index, 1);
+  function deleteEntry(i) {
+    data.splice(i, 1);
     saveData();
     render();
   }
 
-  function downloadCSV() {
-    if (data.length === 0) return alert('No data');
+  function downloadPDF() {
+    if (data.length === 0) return alert("No data");
 
-    let csv = 'Date,Hours\n';
-    data.forEach(e => {
-      csv += `${e.date},${e.hours.toFixed(2)}\n`;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text("Work Hours Report - " + currentUser, 10, 10);
+
+    let y = 20;
+    let total = 0;
+
+    data.forEach(entry => {
+      doc.text(`${entry.date} - ${entry.hours.toFixed(2)} hrs`, 10, y);
+      y += 8;
+      total += entry.hours;
     });
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    doc.text(`Total: ${total.toFixed(2)} hrs`, 10, y + 10);
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentUser}_work_report.csv`;
-    a.click();
-
-    URL.revokeObjectURL(url);
+    doc.save(currentUser + "_report.pdf");
   }
 
   function render() {
-    const list = document.getElementById('entries');
-    list.innerHTML = '';
+    const list = document.getElementById("entries");
+    list.innerHTML = "";
 
     let total = 0;
 
-    data.forEach((entry, i) => {
-      total += entry.hours;
+    data.forEach((e, i) => {
+      total += e.hours;
 
-      const li = document.createElement('li');
-      li.className = 'flex justify-between bg-gray-50 p-2 rounded';
+      const li = document.createElement("li");
+      li.className = "flex justify-between bg-gray-50 p-2 rounded";
 
       li.innerHTML = `
-        <span>${entry.date} - ${entry.hours.toFixed(2)} hrs</span>
+        <span>${e.date} - ${e.hours.toFixed(2)} hrs</span>
         <button onclick="deleteEntry(${i})" class="text-red-500">Delete</button>
       `;
 
       list.appendChild(li);
     });
 
-    document.getElementById('total').innerText = total.toFixed(2);
+    document.getElementById("total").innerText = total.toFixed(2);
   }
 
-  // AUTO LOGIN
-  if (currentUser) {
-    startApp();
-  }
+  if (currentUser) startApp();
 </script>
 
 </body>
